@@ -9,6 +9,10 @@ func routes(_ app: Application) throws {
     app.get("hello") { req -> String in
         return "Hello, world!"
     }
+    
+    app.get("all") { req async throws in
+        try await CV.query(on: req.db).all()
+    }
 
-    try app.register(collection: TodoController())
+    try app.register(collection: CVController())
 }
