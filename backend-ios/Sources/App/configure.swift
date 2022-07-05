@@ -15,7 +15,7 @@ public func configure(_ app: Application) throws {
         port: Environment.get("DATABASE_PORT").flatMap(Int.init(_:)) ?? MySQLConfiguration.ianaPortNumber,
         username: "root",
         password: "",
-        database: "Candidate_CV",
+        database: "curriculum_vitae_db",
         tlsConfiguration: tls
     ), as: .mysql)
 
