@@ -1,13 +1,10 @@
 import Fluent
 import Vapor
+import Foundation
 
 func routes(_ app: Application) throws {
     app.get { req in
         return req.view.render("index", ["title": "Hello Vapor!"])
-    }
-    
-    app.get("all") { req async throws in
-        try await CV.query(on: req.db).all()
     }
     
     app.get("recruiters") { req async throws in
@@ -21,17 +18,28 @@ func routes(_ app: Application) throws {
         return await validateLogin(email: email, password: password, database: req.db)
     }
     
-    app.get("recruiters", ":email") { req -> EventLoopFuture<[Recruiters]> in
-        let email = req.parameters.get("email")
-        return Recruiters.query(on: req.db).filter(\.$email == "\(email ?? "")").all()
+    app.post("logout") { req async throws -> HTTPStatus in
+        let uuid = try req.content.decode([String: String].self).values.first as String?
+        do {
+            try await Recruiters.query(on: req.db)
+                .set(\.$active, to: false)
+                .filter(\.$id == UUID(uuidString: uuid ?? "") ?? UUID())
+                .update()
+            return .ok
+        } catch {
+            return .badRequest
+        }
     }
-
-    try app.register(collection: CVController())
 }
 
 func validateLogin(email: String, password: String, database: Database) async -> HTTPStatus {
-    let dbPass = try? await Recruiters.query(on: database).filter(\.$email == email).first()?.password
-    if dbPass != nil && dbPass == password {
+    let dbData = try? await Recruiters.query(on: database).filter(\.$email == email).first()
+    if let dbPass = dbData?.password, dbPass == password,
+       let dbActive = dbData?.active, !dbActive {
+        try? await Recruiters.query(on: database)
+            .set(\.$active, to: true)
+            .filter(\.$email == email)
+            .update()
         return .ok
     } else {
         return .unauthorized
