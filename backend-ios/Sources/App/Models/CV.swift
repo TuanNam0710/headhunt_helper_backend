@@ -9,26 +9,55 @@ import Fluent
 import Vapor
 
 final class CV: Model, Content {
-    static let schema = "Test"
     
-    @ID(custom: "id_cv")
-    var id: UUID?
+    static let schema = "cv_db"
     
-    @Field(key: "name_candidate")
+    @ID(custom: "id")
+    var id: Int?
+    
+    @Field(key: "name")
     var name: String
     
-    @Field(key: "person_in_charge_id")
-    var picId: Int?
+    @Field(key: "gender")
+    var gender: Int
     
-    @Field(key: "job_id")
-    var jobId: Int
+    @Field(key: "position")
+    var position: String
+    
+    @Field(key: "email")
+    var email: String
+    
+    @Field(key: "phone")
+    var phone: String
+    
+    @ID(custom: "id_recruiter")
+    var idRecruiter: Int?
+    
+    @Field(key: "status")
+    var status: Int
+    
+    @ID(custom: "id_department")
+    var idDepartment: Int?
     
     init() { }
     
-    init(id: UUID? = nil, name: String, picId: Int?, jobId: Int) {
+    init(id: Int? = nil,
+         name: String,
+         gender: Int,
+         position: String,
+         email: String,
+         phone: String,
+         idRecruiter: Int? = nil,
+         status: Int,
+         idDepartment: Int? = nil) {
         self.id = id
         self.name = name
-        self.picId = picId
-        self.jobId = jobId
+        self.gender = gender
+        self.position = position
+        self.email = email
+        self.phone = phone
+        self.idRecruiter = idRecruiter
+        self.status = status
+        self.idDepartment = idDepartment
     }
 }
