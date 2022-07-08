@@ -3,13 +3,9 @@ import Vapor
 import Foundation
 
 func routes(_ app: Application) throws {
+    // Home route
     app.get { req in
-        return req.view.render("index", ["title": "Hello Vapor!"])
-    }
-    
-    
-    app.get("recruiters") { req async throws in
-        try await Recruiter.query(on: req.db).all()
+        return req.view.render("index", ["title": "Headhunt helper!"])
     }
     
     // Login route
@@ -21,42 +17,27 @@ func routes(_ app: Application) throws {
             try await Recruiter.query(on: req.db).filter(\.$id == recruiter.id!)
                 .set(\.$active, to: true)
                 .update()
-            var headers = HTTPHeaders()
-            headers.add(name: .contentType, value: "text/html")
-            return .init(headers: headers, body: .init(string: recruiter.email))
+            return .init(status: .ok,
+                         body: .init(string: recruiter.email))
         } else {
-            return .init(status: .unauthorized, headers: HTTPHeaders(), body: .empty)
-        }
-    }
-    
-    // Logout route
-    app.post("logout") { req async throws -> HTTPStatus in
-        if let id = Int(try req.content.decode([String: String].self).values.first ?? "") {
-            do {
-                try await Recruiter.query(on: req.db)
-                    .set(\.$active, to: false)
-                    .filter(\.$id == id)
-                    .update()
-                return .ok
-            } catch {
-                return .badRequest
-            }
-        } else {
-            return .badRequest
+            return .init(status: .unauthorized,
+                         body: .init(string: "Can't find user!"))
         }
     }
     
     // Register route
-    app.post("register") { req async throws -> HTTPStatus in
+    app.post("register") { req async throws -> Response in
         let registerMessage = try req.content.decode(RegisterRequest.self)
         let name = registerMessage.name
         let email = registerMessage.email
         let password = registerMessage.password
         do {
             let _ = try await Recruiter.register(name: name, email: email, password: password, database: req.db)
-            return .ok
+            return .init(status: .ok,
+                         body: .init(string: "Successfully registered!"))
         } catch {
-            return .badRequest
+            return .init(status: .badRequest,
+                         body: .init(string: "Cannot register new user!"))
         }
     }
     
@@ -72,8 +53,33 @@ func routes(_ app: Application) throws {
             .first()!
     }
     
-    // Get all CVs route
-    app.get("cv", "all") { req async throws in
+    // Protected get all CVs route
+    protected.get("cv", "all") { req async throws in
         try await CV.query(on: req.db).all()
+    }
+    
+    // Protected logout route
+    protected.post("logout") { req async throws -> Response in
+        if let id = Int(try req.content.decode([String: String].self).values.first ?? "") {
+            do {
+                try await Recruiter.query(on: req.db)
+                    .set(\.$active, to: false)
+                    .filter(\.$id == id)
+                    .update()
+                return .init(status: .ok,
+                             body: .init(string: "Successfully logged out!"))
+            } catch {
+                return .init(status: .notFound,
+                             body: .init(string: "Cannot find user with such id!"))
+            }
+        } else {
+            return .init(status: .badRequest,
+                         body: .init(string: "Error parsing request body!"))
+        }
+    }
+    
+    // Protected get all recruiters route
+    protected.get("recruiters") { req async throws in
+        try await Recruiter.query(on: req.db).all()
     }
 }

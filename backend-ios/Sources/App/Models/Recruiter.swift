@@ -32,7 +32,7 @@ final class Recruiter: Model, Content {
         self.id = id
         self.name = name
         self.email = email
-        self.password = try! Bcrypt.hash(password)
+        self.password = password
         self.active = active
     }
     
