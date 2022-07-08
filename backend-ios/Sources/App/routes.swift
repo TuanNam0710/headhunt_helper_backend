@@ -155,4 +155,28 @@ func routes(_ app: Application) throws {
                          body: .init(string: "Cannot parse id from request!"))
         }
     }
+    
+    // Protected get cv basic info
+    protected.get("cv", "basicInfo", ":idCV") { req async throws -> [CV] in
+        let idCV = Int(req.parameters.get("idCV")!)!
+        return try await CV.query(on: req.db).filter(\.$id == idCV).all()
+    }
+
+    // Protected get cv skills
+    protected.get("cv", "skills", ":idCV") { req async throws -> [Skills] in
+        let idCV = Int(req.parameters.get("idCV")!)!
+        return try await Skills.query(on: req.db).filter(\.$idCV == idCV).all()
+    }
+
+    // Protected get cv work experience
+    protected.get("cv", "workExperience", ":idCV") { req async throws -> [WorkExperience] in
+        let idCV = Int(req.parameters.get("idCV")!)!
+        return try await WorkExperience.query(on: req.db).filter(\.$idCV == idCV).all()
+    }
+
+    // Protected get cv additional info
+    protected.get("cv", "additionalInfo", ":idCV") { req async throws -> [AdditionalInfo] in
+        let idCV = Int(req.parameters.get("idCV")!)!
+        return try await AdditionalInfo.query(on: req.db).filter(\.$idCV == idCV).all()
+    }
 }
