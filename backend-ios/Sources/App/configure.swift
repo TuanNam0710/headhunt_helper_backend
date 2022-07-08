@@ -23,7 +23,7 @@ public func configure(_ app: Application) throws {
 
     app.views.use(.leaf)
 
-    
+    app.passwords.use(.bcrypt)
 
     // register routes
     try routes(app)
