@@ -53,11 +53,6 @@ func routes(_ app: Application) throws {
             .first()!
     }
     
-    // Protected get all CVs route
-    protected.get("cv", "all") { req async throws in
-        try await CV.query(on: req.db).all()
-    }
-    
     // Protected logout route
     protected.post("logout") { req async throws -> Response in
         if let id = Int(try req.content.decode([String: String].self).values.first ?? "") {
@@ -81,5 +76,83 @@ func routes(_ app: Application) throws {
     // Protected get all recruiters route
     protected.get("recruiters") { req async throws in
         try await Recruiter.query(on: req.db).all()
+    }
+    
+    // Protected get all CV of current recruiter route
+    protected.get("cv", ":idRecruiter") { req async throws -> [CV] in
+        if let idRecruiter = Int(req.parameters.get("idRecruiter")!) {
+            return try await CV.query(on: req.db).filter(\.$idRecruiter == idRecruiter).all()
+        }
+        return []
+    }
+    
+    // Protected get all CVs route
+    protected.get("cv", "all") { req async throws in
+        try await CV.query(on: req.db).all()
+    }
+    
+    // Protected get all Departments route
+    protected.get("departments") { req async throws in
+        try await Department.query(on: req.db).all()
+    }
+    
+    // Protected assign to department route
+    protected.post("cv", ":idCV", "assignToDept", ":idDepartment") { req async throws -> Response in
+        if let idDepartment = Int(req.parameters.get("idDepartment")!),
+            let idCV = Int(req.parameters.get("idCV")!) {
+            do {
+                try await CV.query(on: req.db).filter(\.$id == idCV)
+                    .set(\.$idDepartment, to: idDepartment)
+                    .update()
+                return .init(status: .ok,
+                             body: .init(string: "Update success!"))
+            } catch {
+                return .init(status: .badRequest,
+                             body: .init(string: "Cannot update!"))
+            }
+        } else {
+            return .init(status: .badRequest,
+                         body: .init(string: "Cannot parse id from request!"))
+        }
+    }
+    
+    // Protected assign to recuiter route
+    protected.post("cv", ":idCV", "assignToRecuiter", ":idRecruiter") { req async throws -> Response in
+        if let idRecruiter = Int(req.parameters.get("idRecruiter")!),
+            let idCV = Int(req.parameters.get("idCV")!) {
+            do {
+                try await CV.query(on: req.db).filter(\.$id == idCV)
+                    .set(\.$idRecruiter, to: idRecruiter)
+                    .update()
+                return .init(status: .ok,
+                             body: .init(string: "Update success!"))
+            } catch {
+                return .init(status: .badRequest,
+                             body: .init(string: "Cannot update!"))
+            }
+        } else {
+            return .init(status: .badRequest,
+                         body: .init(string: "Cannot parse id from request!"))
+        }
+    }
+    
+    // Protected update cv status route
+    protected.post("cv", ":idCV", "updateCVStatus", ":status") { req async throws -> Response in
+        if let status = Int(req.parameters.get("status")!),
+            let idCV = Int(req.parameters.get("idCV")!) {
+            do {
+                try await CV.query(on: req.db).filter(\.$id == idCV)
+                    .set(\.$status, to: status)
+                    .update()
+                return .init(status: .ok,
+                             body: .init(string: "Update success!"))
+            } catch {
+                return .init(status: .badRequest,
+                             body: .init(string: "Cannot update!"))
+            }
+        } else {
+            return .init(status: .badRequest,
+                         body: .init(string: "Cannot parse id from request!"))
+        }
     }
 }
