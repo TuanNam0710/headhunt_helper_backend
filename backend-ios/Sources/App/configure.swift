@@ -15,7 +15,7 @@ public func configure(_ app: Application) throws {
         port: Environment.get("DATABASE_PORT").flatMap(Int.init(_:)) ?? MySQLConfiguration.ianaPortNumber,
         username: "root",
         password: "",
-        database: "Candidate_CV",
+        database: "curriculum_vitae_db",
         tlsConfiguration: tls
     ), as: .mysql)
 
@@ -23,7 +23,7 @@ public func configure(_ app: Application) throws {
 
     app.views.use(.leaf)
 
-    
+    app.passwords.use(.bcrypt)
 
     // register routes
     try routes(app)
