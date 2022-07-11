@@ -18,10 +18,10 @@ func routes(_ app: Application) throws {
                 .set(\.$active, to: true)
                 .update()
             return .init(status: .ok,
-                         body: .init(string: recruiter.email))
+                         body: .init(string: "{\"message\":\"\(recruiter.email)\"}"))
         } else {
             return .init(status: .unauthorized,
-                         body: .init(string: "Can't find user!"))
+                         body: .init(string: "{\"message\":\"Can't find user!\"}"))
         }
     }
     
@@ -34,10 +34,10 @@ func routes(_ app: Application) throws {
         do {
             let _ = try await Recruiter.register(name: name, email: email, password: password, database: req.db)
             return .init(status: .ok,
-                         body: .init(string: "Successfully registered!"))
+                         body: .init(string: "{\"message\":\"Successfully registered!\"}"))
         } catch {
             return .init(status: .badRequest,
-                         body: .init(string: "Cannot register new user!"))
+                         body: .init(string: "{\"message\":\"Cannot register new user!\"}"))
         }
     }
     
@@ -62,14 +62,14 @@ func routes(_ app: Application) throws {
                     .filter(\.$id == id)
                     .update()
                 return .init(status: .ok,
-                             body: .init(string: "Successfully logged out!"))
+                             body: .init(string: "{\"message\":\"Successfully logged out!\"}"))
             } catch {
                 return .init(status: .notFound,
-                             body: .init(string: "Cannot find user with such id!"))
+                             body: .init(string: "{\"message\":\"Cannot find user with such id!\"}"))
             }
         } else {
             return .init(status: .badRequest,
-                         body: .init(string: "Error parsing request body!"))
+                         body: .init(string: "{\"message\":\"Error parsing request body!\"}"))
         }
     }
     
@@ -105,14 +105,14 @@ func routes(_ app: Application) throws {
                     .set(\.$idDepartment, to: idDepartment)
                     .update()
                 return .init(status: .ok,
-                             body: .init(string: "Update success!"))
+                             body: .init(string: "{\"message\":\"Update success!\"}"))
             } catch {
                 return .init(status: .badRequest,
-                             body: .init(string: "Cannot update!"))
+                             body: .init(string: "{\"message\":\"Cannot update!\"}"))
             }
         } else {
             return .init(status: .badRequest,
-                         body: .init(string: "Cannot parse id from request!"))
+                         body: .init(string: "{\"message\":\"Cannot parse id from request!\"}"))
         }
     }
     
@@ -125,14 +125,14 @@ func routes(_ app: Application) throws {
                     .set(\.$idRecruiter, to: idRecruiter)
                     .update()
                 return .init(status: .ok,
-                             body: .init(string: "Update success!"))
+                             body: .init(string: "{\"message\":\"Update success!\"}"))
             } catch {
                 return .init(status: .badRequest,
-                             body: .init(string: "Cannot update!"))
+                             body: .init(string: "{\"message\":\"Cannot update!\"}"))
             }
         } else {
             return .init(status: .badRequest,
-                         body: .init(string: "Cannot parse id from request!"))
+                         body: .init(string: "{\"message\":\"Cannot parse id from request!\"}"))
         }
     }
     
@@ -145,14 +145,14 @@ func routes(_ app: Application) throws {
                     .set(\.$status, to: status)
                     .update()
                 return .init(status: .ok,
-                             body: .init(string: "Update success!"))
+                             body: .init(string: "{\"message\":\"Update success!\"}"))
             } catch {
                 return .init(status: .badRequest,
-                             body: .init(string: "Cannot update!"))
+                             body: .init(string: "{\"message\":\"Cannot update!\"}"))
             }
         } else {
             return .init(status: .badRequest,
-                         body: .init(string: "Cannot parse id from request!"))
+                         body: .init(string: "{\"message\":\"Cannot parse id from request!\"}"))
         }
     }
     
