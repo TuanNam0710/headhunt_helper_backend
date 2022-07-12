@@ -117,7 +117,7 @@ func routes(_ app: Application) throws {
     }
     
     // Protected assign to recuiter route
-    protected.post("cv", ":idCV", "assignToRecuiter", ":idRecruiter") { req async throws -> Response in
+    protected.post("cv", ":idCV", "assignToRecruiter", ":idRecruiter") { req async throws -> Response in
         if let idRecruiter = Int(req.parameters.get("idRecruiter")!),
             let idCV = Int(req.parameters.get("idCV")!) {
             do {
