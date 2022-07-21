@@ -7,19 +7,19 @@
 
 import Vapor
 
-struct User: Authenticatable {
+struct UserAuth: Authenticatable {
     var name: String
 }
 
 struct UserAuthenticator: AsyncBasicAuthenticator {
-    typealias User = App.User
+    typealias UserAuth = App.UserAuth
 
     func authenticate(
         basic: BasicAuthorization,
         for request: Request
     ) async throws {
         if basic.username == "admin" && basic.password == "admin" {
-            request.auth.login(User(name: "Admin"))
+            request.auth.login(UserAuth(name: "Admin"))
         }
    }
 }

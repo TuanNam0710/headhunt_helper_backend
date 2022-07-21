@@ -28,6 +28,56 @@ struct CVController: RouteCollection {
         return cv
     }
     
+    func changeDetail(req: Request) async throws {
+        let message = try req.content.decode(ChangeDetailRequest.self)
+        let id = message.id
+        let idDept = message.idDept
+        let idRecruiter = message.idRecruiter
+        let status = message.status
+        do {
+            if let idRecruiter = idRecruiter {
+                try await CV.query(on: req.db)
+                    .filter(\.$id == id)
+                    .set(\.$idRecruiter, to: idRecruiter)
+                    .update()
+            }
+            if let idDept = idDept {
+                try await CV.query(on: req.db)
+                    .filter(\.$id == id)
+                    .set(\.$idDepartment, to: idDept)
+                    .update()
+            }
+            try await CV.query(on: req.db)
+                .filter(\.$id == id)
+                .set(\.$status, to: status)
+                .update()
+        } catch {
+            throw Abort(.badRequest)
+        }
+    }
+    
+    func getDetail(req: Request) async throws -> CVDetail {
+        let cvDetail: CVDetail?
+        let idString = try? req.content.decode([String: String].self)["id"]
+        if let id = Int(idString ?? "") {
+            let basicInfo = try await CV.query(on: req.db).filter(\.$id == id).first()
+            let skills = try await Skills.query(on: req.db).filter(\.$idCV == id).all()
+            let workExperience = try await WorkExperience.query(on: req.db).filter(\.$idCV == id).all()
+            let additionalInfo = try await AdditionalInfo.query(on: req.db).filter(\.$idCV == id).all()
+            cvDetail = CVDetail(basicInfo: basicInfo!,
+                                skill: skills,
+                                workExperience: workExperience,
+                                additionalInfo: additionalInfo)
+            if let cvDetail = cvDetail {
+                return cvDetail
+            } else {
+                throw Abort(.badRequest)
+            }
+        } else {
+            throw Abort(.badRequest)
+        }
+    }
+    
     func delete(req: Request) async throws -> HTTPStatus {
         guard let cv = try await Todo.find(req.parameters.get("cv_id"), on: req.db) else {
             throw Abort(.notFound)
