@@ -79,7 +79,7 @@ struct CVController: RouteCollection {
     }
     
     func delete(req: Request) async throws -> HTTPStatus {
-        guard let cv = try await Todo.find(req.parameters.get("cv_id"), on: req.db) else {
+        guard let cv = try await CV.find(req.parameters.get("cv_id"), on: req.db) else {
             throw Abort(.notFound)
         }
         try await cv.delete(on: req.db)
