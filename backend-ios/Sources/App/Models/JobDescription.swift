@@ -41,3 +41,11 @@ final class JobDescription: Model, Content {
         self.dueDate = dueDate
     }
 }
+
+struct JobDescriptionDetail: Content {
+    var id: Int
+    var namePosition: String
+    var description: String
+    var noOfJobs: Int
+    var dueDate: String
+}

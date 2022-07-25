@@ -11,5 +11,13 @@ struct CreateJDRequest: Content {
     var idPosition: Int
     var description: String
     var noOfJobs: Int
-    var dueDate: Int
+    var dueDate: String
+}
+
+struct UpdateJDRequest: Content {
+    var id: Int
+    var idPosition: Int
+    var description: String
+    var noOfJobs: Int
+    var dueDate: String
 }

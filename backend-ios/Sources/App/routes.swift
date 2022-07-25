@@ -99,4 +99,71 @@ func routes(_ app: Application) throws {
             throw error
         }
     }
+    
+    protected.get("jds") { req async throws -> [JobDescription] in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await JDController().index(req: req)
+        } catch {
+            throw Abort(.badRequest)
+        }
+    }
+    
+    protected.post("jd", "create") { req async throws -> JobDescription in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await JDController().create(req: req)
+        } catch {
+            throw Abort(.badRequest)
+        }
+    }
+    
+    protected.post("jd", "update") { req async throws -> HTTPStatus in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await JDController().update(req: req)
+        } catch {
+            throw Abort(.badRequest)
+        }
+    }
+    
+    protected.get("jd", "detail") { req async throws -> JobDescriptionDetail in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await JDController().getDetail(req: req)
+        } catch {
+            throw Abort(.notFound)
+        }
+    }
+    
+    protected.post("jd", "delete") { req async throws -> HTTPStatus in
+        try req.auth.require(UserAuth.self)
+        do {
+            if try await JDController().delete(req: req) == .noContent {
+                return .ok
+            } else {
+                return .badRequest
+            }
+        } catch {
+            return .badRequest
+        }
+    }
+    
+    protected.get("depts") { req async throws -> [Department] in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await DepartmentController().index(req: req)
+        } catch {
+            throw Abort(.badRequest)
+        }
+    }
+    
+    protected.get("positions") { req async throws -> [Position] in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await DepartmentController().getPositions(req: req)
+        } catch {
+            throw Abort(.badRequest)
+        }
+    }
 }

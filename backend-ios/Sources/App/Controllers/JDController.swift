@@ -25,28 +25,51 @@ struct JDController: RouteCollection {
     }
     
     func create(req: Request) async throws -> JobDescription {
-        let jd = try req.content.decode(CreateJDRequest.self)
+        let request = try req.content.decode(CreateJDRequest.self)
+        let jd = JobDescription(jobDescription: request.description,
+                                noOfJobs: request.noOfJobs,
+                                dueDate: request.dueDate)
         try await jd.save(on: req.db)
         return jd
     }
     
-    func update(req: Request) async throws -> JobDescription {
-        
+    func update(req: Request) async throws -> HTTPStatus {
+        let request = try req.content.decode(UpdateJDRequest.self)
+        if try await JobDescription.find(request.id, on: req.db) != nil {
+            do {
+                try await JobDescription.query(on: req.db)
+                    .set(\.$dueDate, to: request.dueDate)
+                    .set(\.$jobDescription, to: request.description)
+                    .set(\.$noOfJobs, to: request.noOfJobs)
+                    .update()
+                return .noContent
+            } catch {
+                throw Abort(.badRequest)
+            }
+        } else {
+            throw Abort(.notFound)
+        }
     }
     
-    func getDetail(req: Request) async throws -> JobDescription {
+    func getDetail(req: Request) async throws -> JobDescriptionDetail {
         let id = try? req.content.decode([String: String].self)["id"]
         guard let idString = id, let id = Int(idString) else {
             throw Abort(.badRequest)
         }
-        guard let jd = JobDescription.find(id, on: req.db) else {
+        guard let jd = try await JobDescription.find(id, on: req.db) else {
             throw Abort(.notFound)
         }
-        return jd
+        let namePosition = try await Position.find(jd.id, on: req.db)?.name
+        let detail = JobDescriptionDetail(id: jd.id!,
+                                                namePosition: namePosition ?? "",
+                                                description: jd.jobDescription,
+                                                noOfJobs: jd.noOfJobs,
+                                                dueDate: jd.dueDate)
+        return detail
     }
     
     func delete(req: Request) async throws -> HTTPStatus {
-        guard let jd = JobDescription.find(req.parameters.get("id"), on: req.db) else {
+        guard let jd = try await JobDescription.find(req.parameters.get("id"), on: req.db) else {
             throw Abort(.notFound)
         }
         try await jd.delete(on: req.db)
