@@ -11,4 +11,6 @@ struct RegisterRequest: Content {
     var name: String
     var email: String
     var password: String
+    var idDepartment: Int
+    var role: String
 }
