@@ -9,30 +9,19 @@ func routes(_ app: Application) throws {
     }
     
     // Login route
-    app.post("login") { req async throws -> Response in
-        let loginMessage = try req.content.decode(LoginRequest.self)
-        let email = loginMessage.email
-        let password = loginMessage.password
-        if let recruiter = try? await Recruiter.authenticate(email: email, password: password, database: req.db) {
-            try await Recruiter.query(on: req.db).filter(\.$id == recruiter.id!)
-                .set(\.$active, to: true)
-                .update()
-            return .init(status: .ok,
-                         body: .init(string: "{\"message\":\"\(recruiter.email)\"}"))
-        } else {
-            return .init(status: .unauthorized,
-                         body: .init(string: "{\"message\":\"Can't find user!\"}"))
+    app.post("login") { req async throws -> User in
+        do {
+            let user = try await UserController().authenticate(req: req)
+            return user
+        } catch {
+            throw Abort(.unauthorized)
         }
     }
     
     // Register route
     app.post("register") { req async throws -> Response in
-        let registerMessage = try req.content.decode(RegisterRequest.self)
-        let name = registerMessage.name
-        let email = registerMessage.email
-        let password = registerMessage.password
         do {
-            let _ = try await Recruiter.register(name: name, email: email, password: password, database: req.db)
+            let _ = try await UserController().create(req: req)
             return .init(status: .ok,
                          body: .init(string: "{\"message\":\"Successfully registered!\"}"))
         } catch {
@@ -43,39 +32,30 @@ func routes(_ app: Application) throws {
     
     // Protected group
     let protected = app.grouped(UserAuthenticator())
-        .grouped(User.guardMiddleware())
+        .grouped(UserAuth.guardMiddleware())
     
     // Protected get user info route
-    protected.get("getUserInfo", ":email") { req async throws -> Recruiter in
-        try req.auth.require(User.self)
-        let email = req.parameters.get("email")!
-        return try await Recruiter.query(on: req.db).filter(\.$email == email)
-            .first()!
-    }
-    
-    // Protected logout route
-    protected.post("logout") { req async throws -> Response in
-        if let id = Int(try req.content.decode([String: String].self).values.first ?? "") {
-            do {
-                try await Recruiter.query(on: req.db)
-                    .set(\.$active, to: false)
-                    .filter(\.$id == id)
-                    .update()
-                return .init(status: .ok,
-                             body: .init(string: "{\"message\":\"Successfully logged out!\"}"))
-            } catch {
-                return .init(status: .notFound,
-                             body: .init(string: "{\"message\":\"Cannot find user with such id!\"}"))
-            }
+    protected.get("getUserInfo") { req async throws -> User in
+        try req.auth.require(UserAuth.self)
+        let email = try req.content.decode([String: String].self)["email"]
+        if let email = email {
+            return try await User.query(on: req.db).filter(\.$email == email)
+                .first()!
         } else {
-            return .init(status: .badRequest,
-                         body: .init(string: "{\"message\":\"Error parsing request body!\"}"))
+            throw Abort(.badRequest)
         }
     }
     
-    // Protected get all recruiters route
-    protected.get("recruiters") { req async throws in
-        try await Recruiter.query(on: req.db).all()
+    // Protected logout route
+    protected.post("logout") { req async throws -> HTTPStatus in
+        try req.auth.require(UserAuth.self)
+        return try await UserController().logout(req: req)
+    }
+    
+    // Protected get all users route
+    protected.get("users") { req async throws -> [User] in
+        try req.auth.require(UserAuth.self)
+        return try await UserController().index(req: req)
     }
     
     // Protected get all CV of current recruiter route
@@ -87,96 +67,103 @@ func routes(_ app: Application) throws {
     }
     
     // Protected get all CVs route
-    protected.get("cv", "all") { req async throws in
-        try await CV.query(on: req.db).all()
+    protected.get("cv") { req async throws -> [CV] in
+        try req.auth.require(UserAuth.self)
+        return try await CVController().index(req: req)
     }
     
     // Protected get all Departments route
-    protected.get("departments") { req async throws in
-        try await Department.query(on: req.db).all()
+    protected.get("departments") { req async throws -> [Department] in
+        try req.auth.require(UserAuth.self)
+        return try await Department.query(on: req.db).all()
     }
     
-    // Protected assign to department route
-    protected.post("cv", ":idCV", "assignToDept", ":idDepartment") { req async throws -> Response in
-        if let idDepartment = Int(req.parameters.get("idDepartment")!),
-            let idCV = Int(req.parameters.get("idCV")!) {
-            do {
-                try await CV.query(on: req.db).filter(\.$id == idCV)
-                    .set(\.$idDepartment, to: idDepartment)
-                    .update()
-                return .init(status: .ok,
-                             body: .init(string: "{\"message\":\"Update success!\"}"))
-            } catch {
-                return .init(status: .badRequest,
-                             body: .init(string: "{\"message\":\"Cannot update!\"}"))
-            }
-        } else {
-            return .init(status: .badRequest,
-                         body: .init(string: "{\"message\":\"Cannot parse id from request!\"}"))
+    // Protected change detail route
+    protected.post("cv", "changeDetail") { req async throws -> Response in
+        try req.auth.require(UserAuth.self)
+        do {
+            try req.auth.require(UserAuth.self)
+            try await CVController().changeDetail(req: req)
+            return .init(status: .ok,
+                         body: .init(string: "{\"message\":\"Update success!\"}"))
+        } catch let error {
+            throw error
         }
     }
     
-    // Protected assign to recuiter route
-    protected.post("cv", ":idCV", "assignToRecruiter", ":idRecruiter") { req async throws -> Response in
-        if let idRecruiter = Int(req.parameters.get("idRecruiter")!),
-            let idCV = Int(req.parameters.get("idCV")!) {
-            do {
-                try await CV.query(on: req.db).filter(\.$id == idCV)
-                    .set(\.$idRecruiter, to: idRecruiter)
-                    .update()
-                return .init(status: .ok,
-                             body: .init(string: "{\"message\":\"Update success!\"}"))
-            } catch {
-                return .init(status: .badRequest,
-                             body: .init(string: "{\"message\":\"Cannot update!\"}"))
-            }
-        } else {
-            return .init(status: .badRequest,
-                         body: .init(string: "{\"message\":\"Cannot parse id from request!\"}"))
+    protected.get("cv", "detail") { req async throws -> CVDetail in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await CVController().getDetail(req: req)
+        } catch let error {
+            throw error
         }
     }
     
-    // Protected update cv status route
-    protected.post("cv", ":idCV", "updateCVStatus", ":status") { req async throws -> Response in
-        if let status = Int(req.parameters.get("status")!),
-            let idCV = Int(req.parameters.get("idCV")!) {
-            do {
-                try await CV.query(on: req.db).filter(\.$id == idCV)
-                    .set(\.$status, to: status)
-                    .update()
-                return .init(status: .ok,
-                             body: .init(string: "{\"message\":\"Update success!\"}"))
-            } catch {
-                return .init(status: .badRequest,
-                             body: .init(string: "{\"message\":\"Cannot update!\"}"))
-            }
-        } else {
-            return .init(status: .badRequest,
-                         body: .init(string: "{\"message\":\"Cannot parse id from request!\"}"))
+    protected.get("jds") { req async throws -> [JobDescription] in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await JDController().index(req: req)
+        } catch {
+            throw Abort(.badRequest)
         }
     }
     
-    // Protected get cv basic info
-    protected.get("cv", "basicInfo", ":idCV") { req async throws -> [CV] in
-        let idCV = Int(req.parameters.get("idCV")!)!
-        return try await CV.query(on: req.db).filter(\.$id == idCV).all()
+    protected.post("jd", "create") { req async throws -> JobDescription in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await JDController().create(req: req)
+        } catch {
+            throw Abort(.badRequest)
+        }
     }
-
-    // Protected get cv skills
-    protected.get("cv", "skills", ":idCV") { req async throws -> [Skills] in
-        let idCV = Int(req.parameters.get("idCV")!)!
-        return try await Skills.query(on: req.db).filter(\.$idCV == idCV).all()
+    
+    protected.post("jd", "update") { req async throws -> HTTPStatus in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await JDController().update(req: req)
+        } catch {
+            throw Abort(.badRequest)
+        }
     }
-
-    // Protected get cv work experience
-    protected.get("cv", "workExperience", ":idCV") { req async throws -> [WorkExperience] in
-        let idCV = Int(req.parameters.get("idCV")!)!
-        return try await WorkExperience.query(on: req.db).filter(\.$idCV == idCV).all()
+    
+    protected.get("jd", "detail") { req async throws -> JobDescriptionDetail in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await JDController().getDetail(req: req)
+        } catch {
+            throw Abort(.notFound)
+        }
     }
-
-    // Protected get cv additional info
-    protected.get("cv", "additionalInfo", ":idCV") { req async throws -> [AdditionalInfo] in
-        let idCV = Int(req.parameters.get("idCV")!)!
-        return try await AdditionalInfo.query(on: req.db).filter(\.$idCV == idCV).all()
+    
+    protected.post("jd", "delete") { req async throws -> HTTPStatus in
+        try req.auth.require(UserAuth.self)
+        do {
+            if try await JDController().delete(req: req) == .noContent {
+                return .ok
+            } else {
+                return .badRequest
+            }
+        } catch {
+            return .badRequest
+        }
+    }
+    
+    protected.get("depts") { req async throws -> [Department] in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await DepartmentController().index(req: req)
+        } catch {
+            throw Abort(.badRequest)
+        }
+    }
+    
+    protected.get("positions") { req async throws -> [Position] in
+        try req.auth.require(UserAuth.self)
+        do {
+            return try await DepartmentController().getPositions(req: req)
+        } catch {
+            throw Abort(.badRequest)
+        }
     }
 }
