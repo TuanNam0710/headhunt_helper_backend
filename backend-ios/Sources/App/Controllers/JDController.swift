@@ -26,7 +26,8 @@ struct JDController: RouteCollection {
     
     func create(req: Request) async throws -> JobDescription {
         let request = try req.content.decode(CreateJDRequest.self)
-        let jd = JobDescription(jobDescription: request.description,
+        let jd = JobDescription(idPosition: request.idPosition,
+                                jobDescription: request.description,
                                 noOfJobs: request.noOfJobs,
                                 dueDate: request.dueDate)
         try await jd.save(on: req.db)
@@ -38,6 +39,7 @@ struct JDController: RouteCollection {
         if try await JobDescription.find(request.id, on: req.db) != nil {
             do {
                 try await JobDescription.query(on: req.db)
+                    .filter(\.$id == request.id)
                     .set(\.$dueDate, to: request.dueDate)
                     .set(\.$jobDescription, to: request.description)
                     .set(\.$noOfJobs, to: request.noOfJobs)
@@ -69,7 +71,7 @@ struct JDController: RouteCollection {
     }
     
     func delete(req: Request) async throws -> HTTPStatus {
-        guard let jd = try await JobDescription.find(req.parameters.get("id"), on: req.db) else {
+        guard let jd = try await JobDescription.find(try req.content.decode([String: Int].self)["id"], on: req.db) else {
             throw Abort(.notFound)
         }
         try await jd.delete(on: req.db)

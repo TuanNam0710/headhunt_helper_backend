@@ -47,9 +47,10 @@ func routes(_ app: Application) throws {
     }
     
     // Protected logout route
-    protected.post("logout") { req async throws -> HTTPStatus in
+    protected.post("logout") { req async throws -> Response in
         try req.auth.require(UserAuth.self)
-        return try await UserController().logout(req: req)
+        let status = try await UserController().logout(req: req)
+        return .init(status: status, body: .init(string: "{\"message\":\"Successfully logged out!\"}"))
     }
     
     // Protected get all users route
@@ -91,7 +92,7 @@ func routes(_ app: Application) throws {
         }
     }
     
-    protected.get("cv", "detail") { req async throws -> CVDetail in
+    protected.post("cv", "detail") { req async throws -> CVDetail in
         try req.auth.require(UserAuth.self)
         do {
             return try await CVController().getDetail(req: req)
@@ -127,7 +128,7 @@ func routes(_ app: Application) throws {
         }
     }
     
-    protected.get("jd", "detail") { req async throws -> JobDescriptionDetail in
+    protected.post("jd", "detail") { req async throws -> JobDescriptionDetail in
         try req.auth.require(UserAuth.self)
         do {
             return try await JDController().getDetail(req: req)
@@ -158,7 +159,7 @@ func routes(_ app: Application) throws {
         }
     }
     
-    protected.get("positions") { req async throws -> [Position] in
+    protected.post("positions") { req async throws -> [Position] in
         try req.auth.require(UserAuth.self)
         do {
             return try await DepartmentController().getPositions(req: req)

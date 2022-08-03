@@ -23,9 +23,15 @@ struct DepartmentController: RouteCollection {
         guard let deptId = Int(try req.content.decode([String: String].self)["id"] ?? "") else {
             throw Abort(.notFound)
         }
-        let positionList = try await Position.query(on: req.db)
-            .filter(\.$idDepartment == deptId)
-            .all()
-        return positionList
+        if deptId == 6 {
+            let positionList = try await Position.query(on: req.db)
+                .all()
+            return positionList
+        } else {
+            let positionList = try await Position.query(on: req.db)
+                .filter(\.$idDepartment == deptId)
+                .all()
+            return positionList
+        }
     }
 }
