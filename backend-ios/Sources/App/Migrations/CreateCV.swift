@@ -9,13 +9,13 @@ import Fluent
 
 struct CreateCV: AsyncMigration {
     func prepare(on database: Database) async throws {
-        try await database.schema("Test")
+        try await database.schema("cv_db")
             .id()
-            .field("name_candidate", .string)
+            .field("id_cv", .string)
             .create()
     }
     
     func revert(on database: Database) async throws {
-        try await database.schema("Test").delete()
+        try await database.schema("cv_db").delete()
     }
 }
